@@ -1,0 +1,11 @@
+- model: front.User
+  pk: 1
+  fields:
+    u_name: Import
+    full_name: User for importing topics
+    email: aaskh20@student.sdu.dk
+- model: sites.Site
+  pk: 1
+  fields:
+    domain: adsigno.sdu.dk
+    name: Redirect URL

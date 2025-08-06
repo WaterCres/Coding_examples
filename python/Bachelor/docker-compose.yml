@@ -1,0 +1,58 @@
+services:
+  web:
+    volumes:
+      - ${DOCKER_LOCAL_STATIC}:/var/www/adsigno/static
+      - ${DOCKER_LOCAL_MEDIA}:/var/www/adsigno/media
+    env_file:
+      - .env
+    build:
+      context: .
+    networks:
+      - adsigno
+    ports:
+      - "8000:8000"
+  nginx:
+    build: ./nginx
+    volumes:
+      - ${DOCKER_LOCAL_STATIC}:/var/www/adsigno/static
+      - ${DOCKER_LOCAL_MEDIA}:/var/www/adsigno/media
+    networks:
+      - adsigno
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - web
+  jenkins:
+    build: ./jenkins
+    privileged: true
+    environment:
+      - JENKINS_OPTS="--prefix=/jenkins"
+    user: root
+    networks:
+      - adsigno
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - ${DOCKER_JENKINS_CONFIG}:/var/jenkins_home
+      - ${DOCKER_REPO}:/var/repo
+      - /var/run/docker.sock:/var/run/docker.sock
+  agent:
+    image: jenkins/ssh-agent:jdk11
+    privileged: true
+    user: root
+    container_name: agent
+    networks:
+      - adsigno
+    ports:
+      - "4444:22"
+    volumes:
+      - ${DOCKER_REPO}:/var/repo
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - JENKINS_AGENT_SSH_PUBKEY=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDoeLSDNs0zvg5dZAdfjJI9WcUbC4Tha8mAgcDIL4h0A+JZDiLdI6HohHLlbAQJGMJyNE+PXo6/ZMuWJ+duoaRvZKPIY+UK79jM9rBUJS0AXm0YNGI1CWKAtFQqscr9ry6p6tkcOX0IlEjyUtEEhUVW4UeROn0pr2O5s1KvwsSZlolpXHfRqU713ZAkBvgV3yzEE9B/C4+WHwyu59+VA/h/w7Ymk+rtSrgsfiVAJiBR0mqVMs9HtLus64UchXf05pMh5LKo0HIqHfG3LImi5B8nXBPQYOlLpSIKzaFHUW0riBgrjboIvZddPbkSCo4yo6BSw85ZKBo4XmbbAgdTRV4hPxlfCED7PnjJNpvbwsee1ouBEBRwDuOB6HjKdk1M2SMWAlNtdl9paUQwpJiqrbM8to1dPVRy2i6gKm8t61F0M3tXXZmLc+6QQuq2RuzEp+17hCNLGLIUAqn/dUHk5ei5/EPPxaCND2XLUJwtJSX+4yMw2ftbuZDx8bXK+x1iLh0= aaskh20@adsigno.stud-srv.sdu.dk
+networks:
+  adsigno:
+    external: false
+    name: adsigno

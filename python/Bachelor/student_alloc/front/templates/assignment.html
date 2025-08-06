@@ -1,0 +1,280 @@
+{% extends 'layout.html' %}
+{% block title %}Assignment process{% endblock %}
+{% block content %}
+	<div class="row g-2">
+		<form action="{% url 'assign' %}" method="post">
+			{% csrf_token %}
+			<fieldset>
+				<div class="p-2">
+					<input class="form-control" type="text" name="scenario" placeholder="Give a name to the scenario, defaults to date and time">
+				</div>
+
+				<div class="p-2" id="checks">
+					<legend>Select the types of students to be assigned</legend>
+					<div class="form-check">
+						<input class="form-check-input" @click="all()" v-model="checked" type="checkbox" name="selected" id="inlineCheckbox0" value="alle">
+						<label class="form-check-label" for="inlineCheckbox0">All</label>
+					</div>
+					{% for type in students %}
+						{% if type != "alle" %}
+							<div class="form-check form-check-inline">
+								<input class="form-check-input" type="checkbox" v-model="types" @change="updateAll()" name="selected" id="inlineCheckbox{{ forloop.counter }}" value="{{ type }}">
+								<label class="form-check-label" for="inlineCheckbox{{ forloop.counter }}">{{ type }}</label>
+							</div>
+						{% endif %}
+					{% endfor %}
+				</div>
+
+				<div class="p-2 container-fluid" id="compatibility">
+					<legend>Select compatibilities</legend>
+				{% for type in students %}
+					<div class="row p-2 justify-content-start">
+					<div class="col-3">
+							<strong>{{type}}:</strong>
+					</div>
+						<div class="btn-group col-4" role="group" aria-label="checkbox toggle button group">
+							{% for comp in types %}
+								<input type="checkbox" class="btn-check" id="btn{{type}}{{forloop.counter}}" name="{{type}}" value="{{comp}}"autocomplete="off">
+  								<label class="btn btn-outline-secondary" for="btn{{type}}{{forloop.counter}}">{{comp}}</label>
+							{% endfor %}
+						</div>
+					</div>
+				{% endfor %}
+				</div>
+
+<div 
+class="offcanvas offcanvas-end" 
+data-bs-scroll="true" 
+data-bs-backdrop="false" 
+tabindex="-1" 
+id="offcanvashelper"
+aria-labelledby="offcanvasScrollingLabel">
+  <div class="offcanvas-header row">
+  	<button type="button" class="btn-close col-1" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    <h5 class="offcanvas-title col"
+    id="offcanvasScrollingLabel">
+	Advanced options
+	</h5>
+  </div>
+  <div class="offcanvas-body">
+  	<ul>
+  		<li><strong>Set restrictions</strong></li>
+  		<p>If an advisor has a limit on how many groups they are advising lower than the sum of the max capacity on their topics, write the name of the advisor and the capacity separated by a ':'<br> One advisor per line.</p>
+  		<li><strong>Weighting method</strong></li>
+  		<p>Select the weighting method for determining a good solution.</p>
+  		<li><strong>Grouping method</strong></li>
+  		<p>Select whether groups are formed before the assignment process(pre), or should be formed during the process(post).</p>
+  		<li><strong>minimum preferences</strong></li>
+  		<p>Set the minimum number of preferences a student is required to have submitted.</p>
+  		<li><strong>cut off type</strong></li>
+  		<p>If any type of student has special priviledges during the assignment process, write the type here.</p>
+  		<li><strong>cut off value</strong></li>
+  		<p>The worst priority a student with special priviledges can be assigned to.</p>
+  		<li><strong>All solutions</strong></li>
+  		<p>Check if all solutions should be saved.</p>
+  		<li><strong>Instability</strong></li>
+  		<p> Instability is when an incentive exists for a student to change to another topic, for example when a student has been assigned to their 3rd priority but their 1st or 2nd priority still has capacity for more groups, the solution is unstable. this parameter, if checked, allows such a solution.</p>
+  		<li><strong>Expanded topics</strong></li>
+  		<p>Check if the uploaded file contained only the topics rather than the teams of each topic</p>
+  		<li><strong>Prioritize all</strong></li>
+  		<p>Check if all remaining(not selected) topics should be added to the priority list of the students, with a lower priority than their current worst priority.</p>
+  		<li><strong>Allow unassigned</strong></li>
+  		<p>Check if students should be placed in placeholder projects in case there is not enough capacity to assign everyone.</p>
+  	</ul>
+  </div>
+</div>
+
+<div class="container-fluid">
+	<section class="p-4 rounded-5">
+		<div class="accordion" id="advanced">
+			<div class="accordion-item row">
+				<h2 class="accordion-header col">
+				<button
+					class="accordion-button collapsed"
+					type="button"
+					data-bs-toggle="collapse"
+					data-bs-target="#body-opt">
+					Advanced options
+				</button>
+				</h2>
+				<button
+					class="bi bi-info-square col-1 btn btn-secondary  "
+					style="font-size:26px;"
+					type="button"
+					data-bs-toggle="offcanvas"
+					data-bs-target="#offcanvashelper"
+					aria-controls="offcanvashelper">
+				</button>
+				</div>
+				<div
+				id="body-opt"
+				class="accordion-collapse collapse"
+				data-bs-parent="#advanced"
+				>
+				<div class="accordion-body">
+				
+				<div class="p-2" id="restrictions">
+					<legend>Set restrictions</legend>
+					<div class="p-2" v-for="(rest,index) in restrictions" :key="index">
+						<div class="input-group mb-0">
+							<input 
+								v-model="rest.data"
+								type="text"
+								class="form-control"
+								name="restrictions"
+								pattern="(.*\:\d*)?"
+								placeholder="restrictions must be formatted as 'advisor:capacity' and only one entry pr. line"
+								aria-label="Username"
+								aria-describedby="basic-addon1"
+								/>
+								<button
+									type="button"
+									class="btn btn-secondary"
+									@click="remove(index)"
+									v-show="index != 0">
+								Remove
+								</button>
+						</div>
+					</div>
+					<button type="button"
+					class="btn btn-secondary"
+					@click="addMore()"
+					>
+					add more
+					</button>
+				</div>
+
+				<div class="row p-2">						
+					<div class="p-2 col-6">
+						<label class="form-label" for="weight">Select weighting method</label>
+						<select class="form-select form-select-lg" name="weight" aria-label=".form-select-lg example" id="weight">
+							<option value="owa" selected>owa</option>
+							<option value="identity">Identity</option>
+							<option value="powers">Powers</option>
+						</select>
+					</div>
+
+				<div class="p-2 col-6">
+					<label class="form-label" for="group">Select grouping method</label>
+						<select class="form-select form-select-lg" name="group" aria-label=".form-select-lg example" id="group">
+							<option value="post" selected>post</option>
+							<option value="pre">pre</option>
+						</select>
+						
+					</div>
+				</div>
+
+				<div class="form-outline col-5 p-2">
+    				<label class="form-label" for="min_prefs">minimum preferences</label>
+    				<input value="7" type="number" id="min_prefs" name="min_prefs" class="form-control" />
+				</div>
+				<div class="row p-2">
+					<div class="col-3 form-outline">
+						<label class="form-label" for="cut_type">Cut off type</label>
+						<input type="text" name="cut_type" id="cut_type" value="None" class="form-control" />
+					</div>
+					<div class="col-3 form-outline">
+    					<label class="form-label" for="cut">cut off value</label>
+    					<input value="10" type="number" id="cut" name="cut" class="form-control" />
+					</div>
+				</div>
+
+
+				<div class="p-2">
+					<div class="form-check">
+						<input class="form-check-input" type="checkbox" name="allsol" id="allsol"/>
+						<label class="form-check-label" for="allsol">all solutions</label>
+					</div>
+					<div class="form-check form-check-inline">
+						<input class="form-check-input" type="checkbox" name="instab" id="instab"/>
+						<label class="form-check-label" for="instab">Instability</label>
+					</div>
+					<div class="form-check form-check-inline">
+						<input class="form-check-input" type="checkbox" name="expand" id="expand"/>
+						<label class="form-check-label" for="expand">Expand topics</label>
+					</div>
+					<div class="form-check form-check-inline">
+						<input class="form-check-input" type="checkbox" name="prio_all" id="prio_all"/>
+						<label class="form-check-label" for="prio_all">Prioritize all</label>
+					</div>
+					<div class="form-check form-check-inline">
+						<input class="form-check-input" type="checkbox" name="allow_un" id="allow_un"/>
+						<label class="form-check-label" for="allow_un">Allow unassigned</label>
+					</div>
+				</div>
+				</div>	
+				</div>
+			</div>
+		</div>
+	</section>
+</div>
+</fieldset>
+		<button id="assign" type="submit" class="btn btn-secondary">
+		<span id="spinner"  class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+		Start assignment
+		</button>
+</form>
+</div>
+{% endblock %}
+{% block scripts %}
+	<script>
+		//roundabout way of adding a spinner showing progress, while keeping the functionality of the button
+		document.getElementById('spinner').style.display = 'none';
+		document.getElementById('assign').onclick=function(){
+			document.getElementById('spinner').style.display='';
+		  };
+		  
+		const { createApp } = Vue
+
+		createApp({
+			delimiters:['[[',']]'],
+			data(){
+				return{
+					checked: false,
+					types_data:{{students|safe}},
+					types: []
+				}
+			},
+			methods:{
+				all (){
+					this.checked = !this.checked;
+					this.types = [];
+					if (this.checked){
+						for (var key in this.types_data) {
+			                    this.types.push(this.types_data[key]);
+			                }
+					}
+				},
+				updateAll(){
+					if (this.types.length == this.types_data.length) {
+						this.checked = true;
+					}else{
+						this.checked = false;
+					}
+				}
+			}
+		}).mount('#checks')
+		createApp({
+			delimiters:['[[',']]'],
+			data(){
+				return {
+					restrictions:[
+					{
+						data: "",
+					},
+					],
+				};
+			},
+			methods:{
+				addMore(){
+					this.restrictions.push({
+						data: "",
+					});
+				},
+				remove(index){
+					this.restrictions.splice(index,1);
+				},
+			},
+		}).mount('#restrictions')
+	</script>
+{% endblock %}

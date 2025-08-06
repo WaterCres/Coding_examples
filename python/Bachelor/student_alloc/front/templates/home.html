@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<h3>
+	Welcome to the student project assignment system Adsigno.
+</h3>
+<p>
+	The system collects students' preferences towards topics and distributes students to project teams according to preferences and team capacities.
+</p>
+{{staff}}
+{% if user.is_authenticated %}
+<p>
+	{% if request.user in teachers or user.is_staff %}
+	Navigate to <a href="{% url 'sub' %}">Data</a> to import data into the application 
+	or <a href="{% url 'assign' %}">Assignment</a> to start the assignment process when data has been imported.
+	{% endif %}
+	When the assignment process has been run and a solution is available it can be viewed on the <a href="{% url 'results' %}">Results</a> page.
+</p>
+{% else %}
+<p>
+	Login via <a href="{% url 'login' %}">SDU Single Sign-On</a> to use Adsigno.
+</p>
+{% endif %}
+<p>
+If you encounter problems with this system, report them to <a href="mailto:{{admin_email}}?subject=Project assignment system">{{ admin_name }}</a>.
+</p>
+
+{% endblock %}

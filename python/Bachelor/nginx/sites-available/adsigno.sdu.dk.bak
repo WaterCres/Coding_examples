@@ -1,0 +1,19 @@
+server {
+  listen 80 default_server;
+  listen [::]:80 default_server;
+  server_name adsigno.sdu.dk;
+  return 301 https://$host$request_uri;
+}
+
+
+server {
+  listen 443 ssl;
+  include snippets/self-signed.conf;
+  include snippets/ssl-params.conf;
+ 
+ location / {
+    proxy_pass              http://127.0.0.1:8000/;
+    proxy_set_header        Host $host;
+    proxy_redirect off;
+  }
+}

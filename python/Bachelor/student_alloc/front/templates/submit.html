@@ -1,0 +1,182 @@
+{% extends "layout.html" %}
+{% block title %}Submit Topic{% endblock %}
+{% block content %}
+{% if not headers %}
+<p>Choose and upload an '.xlsx' file containing students and/or topics</p>
+	<form method="POST" action="{% url 'sub' %}" enctype="multipart/form-data">
+	{% csrf_token %}
+	<div class="input-group">
+			<input type="file" name="file" class="form-control" id="inputGroupFileStudent" aria-describedby="inputbuttonFileStudent" aria-label="Upload">
+			<button class="btn btn-outline-secondary" for="inputbuttonFileStudent">
+			Upload File
+			</button>
+		</div>
+	</form>
+{% else %}
+<p>{{ sheets.0 }} sheet(s) detected in {{ f_name }}</p>
+
+<p>Match the headers to the corresponding data</p>
+
+<form action="{% url 'import' %}" method="post" id="format" enctype="multipart/form-data">
+	<fieldset>
+	{% csrf_token %}
+	{% for sheet,header in headers.items %}
+	{% with forloop.counter0 as index %}
+	<p class="h4"><u>Sheet {{forloop.counter}}:</u></p>
+	<div class="row p-2">
+		<select class="form-select form-select-lg" name="contents" aria-label=".form-select-lg example">
+			
+			{% if "student" in sheet %}
+				<option selected @click="val_set('student','{{index}}')" value="students;{{sheet}}">Students</option>
+				<option @click="val_set('topic',{{index}})" value="topics;{{sheet}}">Topics</option>
+			{% elif "proje" or "topic" in sheet %}
+				<option @click="val_set('student',{{index}})" value="students;{{sheet}}">Students</option>
+				<option selected @click="val_set('topic',{{index}})" value="topics;{{sheet}}">Topics</option>
+			{% else %}
+				<option selected>Select contents of file</option>
+				<option @click="val_set('student',{{index}})" value="students;{{sheet}}">Students</option>
+				<option @click="val_set('topic',{{index}})" value="topics;{{sheet}}">Topics</option>
+			{% endif %}
+				<option @click="val_set('empty',{{index}})" value="empty;{{sheet}}">Sheet is empty</option>
+		</select>
+	</div>
+
+<div class="row p-2 justify-content-start" v-if="value[{{index}}] == 'student'">
+	{% for data in stud %}
+	<div class="row p-2">
+	<div class="col-3">
+		<strong>{{data}}:</strong>
+	</div>
+	<div class="col-5">
+		<select class="form-select form-select-lg" name="index_stud">
+			<option selected></option>
+			{% for opt in header %}
+				<option @click="remove('{{data}}',{{index}})" value="{{data}};{{opt}}">{{opt}}</option>
+			{% endfor %}
+		</select>
+	</div>
+	</div>
+	{% endfor %}
+</div>
+
+<div class="row p-2 justify-content-start" v-if="value[{{index}}] == 'topic'">
+	{% for data in topics %}
+	<div class="row p-2">
+	<div class="col-3">
+		<strong>{{data}}:</strong>
+	</div>
+	<div class="col-5">
+		<select class="form-select form-select-lg" name="index_top">
+			<option selected></option>
+			{% for opt in header %}
+				<option @click="remove('{{data}}',{{index}})" value="{{data}};{{opt}}">{{opt}}</option>
+			{% endfor %}
+		</select>
+	</div>
+	</div>
+	{% endfor %}
+	<div class="row p-2 col-5">
+		<p class="h5"><u>Optional Fields</u></p>		
+	</div>
+	<div class="row p-2">
+	<div class="col-3">
+		<strong>Advisor:</strong>
+	</div>
+	<div class="col-5">
+		<select class="form-select form-select-lg" name="index_top">
+			<option selected></option>
+			{% for opt in header %}
+				<option value="advisor;{{opt}}">{{opt}}</option>
+			{% endfor %}
+		</select>
+	</div>
+	</div>
+	<div class="row p-2">
+	<div class="col-3">
+		<strong>Email:</strong>
+	</div>
+	<div class="col-5">
+		<select class="form-select form-select-lg" name="index_top">
+			<option selected></option>
+			{% for opt in header %}
+				<option value="email;{{opt}}">{{opt}}</option>
+			{% endfor %}
+		</select>
+	</div>
+	</div>
+</div>
+{% endwith %}
+{% endfor %}
+</fieldset>
+
+<div class="row p-2 col-3">
+	<button @click="toggle()" :disabled="!enabled" type="submit" class="btn btn-secondary">
+	<span v-if="show" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+	Import
+	</button>
+</div>
+</form>
+
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+	const { createApp } = Vue
+	
+	createApp({
+		delimiters:['[[',']]'],
+		data () {
+			return{
+				show: false,
+				enabled: false,
+				value: ["none"],
+				data:[['initial']]
+			}
+		},
+		created() {
+			var s_name = {{ sheets.1|safe }}
+
+			for (var i = 0; i < s_name.length; i++) {
+				if (s_name[i].includes('student')) {
+					this.data[i] ={{stud|safe}};
+					this.value[i] = 'student';
+					this.enabled[i]=false;
+				} else if (s_name[i].includes('proj')){
+					this.data[i] = {{topics|safe}};
+					this.value[i] = 'topic';
+					this.enabled[i]=false;
+				} else if (s_name[i].includes('topi')){
+					this.data[i] = {{topics|safe}};
+					this.value[i] = 'topic';
+					this.enabled[i] = false;
+				} else {
+					this.value[i] = "none";
+				}
+			}
+		},
+		methods:{
+			val_set (val,sheet) {
+				if (val == 'student') {this.data[sheet] = {{stud|safe}};}
+				if (val == 'topic') {this.data[sheet] = {{topics|safe}};}
+				this.value[sheet] = val;
+			},
+			remove (item,sheet){
+				const index = this.data[sheet].indexOf(item);
+				if (index >= 0) {
+					this.data[sheet].splice(index,1);
+				}
+				if (this.data[sheet].length == 0) {
+					this.data[sheet] = null;
+					console.log(this.data.length)
+					if (this.data.every(element => element === null)) { this.enabled=true; }
+					console.log(this.enabled);
+
+				}
+			},
+			toggle() {
+				this.show = true
+			},
+		}
+	}).mount('#format');
+</script>
+{% endblock %}

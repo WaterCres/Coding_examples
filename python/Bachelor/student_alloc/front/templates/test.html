@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title></title>
+	<link rel="stylesheet" href="">
+</head>
+<body>
+	<a class="button" href="{% url 'index' %}">Home</a>
+	
+	{% for s in diff %}
+	<p>{{s.title}}</p>
+	<p>{{s.stats}}</p>
+	<p>{{s.sln}}</p>
+	{% endfor %}
+	
+</body>
+</html>
+
